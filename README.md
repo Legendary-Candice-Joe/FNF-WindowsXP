@@ -1,9 +1,9 @@
-## FINALY!!!!
+# FINALY!!!!
 
 A port of the very well-known game: Friday Night Funkin'
 to the greatest system of all time!
 
-# What is it?
+## What is it?
 
 Well it's what it says it is, no tricks, no gimmics, just a plain-ol' port
 to Windows XP. Nothing you have to install, nothing you have to change.
@@ -11,7 +11,7 @@ It should just work right off the bat.
 
 It can even work on Windows 2000 to an extent, if you get kernel extensions.
 
-# Why?
+## Why?
 
 Well it's a long story, and a mix of things but to summerize:
 
@@ -49,7 +49,7 @@ and you can play through the whole story just fine (I think).
 There also is a ton of failed attempts and methods I tried to use but I'll add that
 as a bonus section at the bottom of the README.
 
-# Is there a catch?
+## Is there a catch?
 
 Yes! Unfortunatly.
 This Psych Engine 0.3.2 (not the problem) and although I can port up to Psych 0.5.1,
@@ -67,14 +67,14 @@ I will make a list of other things that don't work.
 6. No time resyncing. So if the chart/vocals/music get out of sync, the game cannot automatically
 fix it. So you will have to manually pause and un-pause.
 
-# 64bit Version?
+## 64bit Version?
 
 Honestly most of the information here is about to be found in the /art/readme.txt folder.
 or bin/Windows XP Info.txt file for the compiled version. 
 
 I can't be bothered re-typing this so just read it from there.
 
-# Sprites glitching?
+## Sprites glitching?
 
 You can read the same txt file if you have it open still but to summerize:
 When too much memory is used bad stuff can happen. It'll be
@@ -95,7 +95,7 @@ problems when running them on older systems.
 
 So basically this is much better.
 
-## Compiling the code
+# Compiling the code
 
 This is difficult since there is a lot more to compiling this code than just
 typing "Lime test/build Windows". 
@@ -117,7 +117,7 @@ to focus on is an error address openfl shader filter.
 Go to the path it specifies (OpenFl/filters/shaderfilter.hx) and near the bottom,
 comment out the 2 lines of code inbetween the #else and #end statements.
 
-:INSERT IMAGE:
+![Screenshot from 2023-05-11 00-36-00](https://github.com/Legendary-Candice-Joe/FNF-WindowsXP/assets/105545224/384ea2dc-382f-4061-87af-d289151c9da0)
 
 After that you should get some error about "Null on static platforms".
 If you don't, then fix the errors you get until you get the one mentioned above and
@@ -142,7 +142,7 @@ It's good enough.
 
 Soon the game should be compiled and running just fine!
 
-# Bonus section! Failed previous attempts/ideas
+## Bonus section! Failed previous attempts/ideas
 
 First I tried getting everything on XP but I can't even remember, it just didn't work.
 I then tried patching the game but like the dumb dumb that I was, I failed.
