@@ -1434,7 +1434,11 @@ class PlayState extends MusicBeatState
 		// trace(unspawnNotes.length);
 		// playerCounter += 1;
 
-		unspawnNotes.sort(sortByShit);
+		//unspawnNotes.sort(sortByShit);
+		haxe.ds.ArraySort.sort(unspawnNotes, function(a, b):Int {
+			return Std.int(a.strumTime - b.strumTime);
+		});
+		
 		if(eventNotes.length > 1) eventNotes.sort(sortByTime);
 
 		generatedMusic = true;
@@ -3011,64 +3015,81 @@ class PlayState extends MusicBeatState
 	}
 	
 	public var possibleKeyIsPressed:Bool = false;
+	public var keyPrAr:Array<Bool> = [false, false, false, false];
 	public function keyHit(e:KeyboardEvent){
-		// this doesn't resemble psych input
-		// but trust me this is the same.
-		// just heavily re-worked for speed.
-		var quickKey = e.keyCode;
+		// At this point this is barely pysch input.
+		// it's not really any input system to be honest.
+		// it works though and that's what matters.
+		// MUCH MUCH MUCH faster than Pysch Input too.
 		
-		possibleKeyIsPressed = FlxG.keys.anyJustPressed(possibleBinds);
-		if (!possibleKeyIsPressed) return;
+		var keyData:Int = -1;
+		
+		for (i in 0...4) 
+			if (e.keyCode == possibleBinds[i] || e.keyCode == possibleBinds[i + 4]){
+				keyData = i;
+				break;
+			}
+			
+		if (keyData == -1 || keyPrAr[keyData]) return;
+		
+		//possibleKeyIsPressed = FlxG.keys.anyJustPressed(possibleBinds);
+		//if (!possibleKeyIsPressed) return;
 		
 		if(!ClientPrefs.ghostTapping)
 			boyfriend.holdTimer = 0;
-
-		var canMiss:Bool = !ClientPrefs.ghostTapping;
-		var notesHitArray:Array<Note> = [];
 
 		// yes it means it is possible to have
 		// duplicate notes, and you will miss them.
 		// but just chart better cause you shouldn't have
 		// dupe notes!
+		
+		var noteRef:Note = null;
 
-		notes.forEachAlive(function(daNote:Note){
-			if (!daNote.canBeHit) return;
+		for(daNote in notes.members){
+			if (!daNote.canBeHit) continue;
+			if (keyData != daNote.noteData) continue;
 			
 			if (daNote.mustPress && !daNote.tooLate && !daNote.wasGoodHit) {
-				notesHitArray.push(daNote);
-				canMiss = true;
+				//notesHitArray.push(daNote);
+				noteRef = daNote;
+				break;
 			}
-		});
+		}
 
-		if (perfectMode)
+		/*if (perfectMode)
 			goodNoteHit(notesHitArray[0]);
 		else if (notesHitArray.length > 0) 
 			for (i in 0...notesHitArray.length) {
 				var daNote = notesHitArray[i];
 				
-				if (quickKey == daNote.primaryBind || quickKey == daNote.secondrBind) {
+				if (quickKey == daNote.primaryBind || quickKey == daNote.secondrBind){
 					goodNoteHit(daNote);
 					
 					if(ClientPrefs.ghostTapping)
 						boyfriend.holdTimer = 0;
 				}
-			}
+			}*/
+		
+		if (noteRef != null){
+			goodNoteHit(noteRef);
+					
+			if(ClientPrefs.ghostTapping)
+				boyfriend.holdTimer = 0;
+		}
 		//for (i in 0...keysPressed.length) 
 		//	if(!keysPressed[i] && controlArray[i]) keysPressed[i] = true;
 
 		// for loop because faster.
-		for(i in 0...4)
-		{
-			var spr = playerStrums.members[i];
-			if (spr.animation.curAnim.name == 'confirm') continue;
-			
-			if(quickKey == possibleBinds[i] || quickKey == possibleBinds[i+4]) {
-				spr.playAnim('pressed');
-				spr.resetAnim = 0;
+		possibleKeyIsPressed = true;
+		keyPrAr[keyData] = true;
+		
+		var spr = playerStrums.members[keyData];
+		if(spr.animation.curAnim.name != 'confirm') {
+			spr.playAnim('pressed');
+			spr.resetAnim = 0;
 
-				if(!ClientPrefs.ghostTapping)
-					noteMiss(i);
-			}
+			if(!ClientPrefs.ghostTapping)
+				noteMiss(keyData);
 		}
 	}
 	
@@ -3077,6 +3098,7 @@ class PlayState extends MusicBeatState
 		possibleKeyIsPressed = FlxG.keys.anyPressed(possibleBinds);
 		for (i in 0...4)
 			if (e.keyCode == possibleBinds[i] || e.keyCode == possibleBinds[i + 4]){
+				keyPrAr[i] = false;
 				var qRef = playerStrums.members[i];
 				
 				qRef.playAnim('static');
