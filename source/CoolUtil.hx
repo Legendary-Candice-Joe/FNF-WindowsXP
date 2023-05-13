@@ -48,7 +48,8 @@ class CoolUtil
 		return daList;
 	}
 
-	public static function numberArray(max:Int, ?min = 0):Array<Int>
+	// this is used once for bg girls. That's all this is for bruh.
+	/*public static function numberArray(max:Int, ?min = 0):Array<Int>
 	{
 		var dumbArray:Array<Int> = [];
 		for (i in min...max)
@@ -56,7 +57,7 @@ class CoolUtil
 			dumbArray.push(i);
 		}
 		return dumbArray;
-	}
+	}*/
 
 	//uhhhh does this even work at all? i'm starting to doubt
 	public static function precacheSound(sound:String, ?library:String = null):Void {

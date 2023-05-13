@@ -44,6 +44,9 @@ import openfl.filters.ShaderFilter;
 import openfl.media.Video;
 import Achievements;
 import openfl.Assets as OpenFlAssets;
+import flixel.input.keyboard.FlxKey;
+import openfl.events.KeyboardEvent;
+import Controls;
 
 using StringTools;
 
@@ -222,11 +225,26 @@ class PlayState extends MusicBeatState
 	// Lua shit
 	public var backgroundGroup:FlxTypedGroup<FlxSprite>;
 	public var foregroundGroup:FlxTypedGroup<FlxSprite>;
+	
+	public static var possibleBinds:Array<FlxKey> = [];
 
 	override public function create()
 	{
 		if (FlxG.sound.music != null)
 			FlxG.sound.music.stop();
+		
+		// this sucks but hopefully reduces input latency.
+		possibleBinds = [];
+		
+		possibleBinds.push(ClientPrefs.lastControls[0]);
+		possibleBinds.push(ClientPrefs.lastControls[2]);
+		possibleBinds.push(ClientPrefs.lastControls[4]);
+		possibleBinds.push(ClientPrefs.lastControls[6]);
+		
+		possibleBinds.push(ClientPrefs.lastControls[1]);
+		possibleBinds.push(ClientPrefs.lastControls[3]);
+		possibleBinds.push(ClientPrefs.lastControls[5]);
+		possibleBinds.push(ClientPrefs.lastControls[7]);
 
 		practiceMode = false;
 		// var gameCam:FlxCamera = FlxG.camera;
@@ -945,6 +963,11 @@ class PlayState extends MusicBeatState
 		#end
 		
 		super.create();
+		
+		// keyHit is not intentionally a reference to the keySh*t function.
+		// to be clear it is the same input just re-worked a little bit.
+		FlxG.stage.addEventListener(KeyboardEvent.KEY_DOWN, keyHit);
+		FlxG.stage.addEventListener(KeyboardEvent.KEY_UP  , keyRel);
 
 		scoreTxt.text = 'Score: ' + songScore + ' | Misses: ' + songMisses + ' | Rating: ' + ratingString;
 		iconP1.x = healthBar.x + (healthBar.width * (FlxMath.remapToRange(50, 0, 100, 100, 0) * 0.01) - 26);
@@ -1322,11 +1345,13 @@ class PlayState extends MusicBeatState
 
 		var songName:String = SONG.song.toLowerCase();
 		var file:String = Paths.json(songName + '/events');
+		var n:Bool = false;
 		#if sys
-		if (sys.FileSystem.exists(file)) {
+		if (sys.FileSystem.exists(file)) n=!n;
 		#else
-		if (OpenFlAssets.exists(file)) {
+		if (OpenFlAssets.exists(file))n =!n;
 		#end
+		if(n){
 			var eventsData:Array<SwagSection> = Song.loadFromJson('events', songName).notes;
 			for (section in eventsData)
 			{
@@ -2085,17 +2110,20 @@ class PlayState extends MusicBeatState
 					daNote.visible = true;
 					daNote.active = true;
 				}*/
-				
-				daNote.active = (daNote.y < FlxG.height && ClientPrefs.downScroll) || (daNote.y > -daNote.height && !ClientPrefs.downScroll);
-				daNote.visible = daNote.active;
 
 				// i am so fucking sorry for this if condition
 				var strumY:Float = opponentStrums.members[daNote.noteData].y;
 				if(daNote.mustPress) 
 					strumY = playerStrums.members[daNote.noteData].y;
 	
-				var center:Float = strumY + Note.swagWidth / 2;
 				daNote.y = (strumY + (ClientPrefs.downScroll ? 0.45 : -0.45) * (Conductor.songPosition - daNote.strumTime) * roundedSpeed);
+				
+				daNote.active = (daNote.y > -daNote.height && ClientPrefs.downScroll) || (daNote.y < FlxG.height && !ClientPrefs.downScroll);
+				daNote.visible = daNote.active;
+				
+				if (!daNote.active) return;
+				
+				var center:Float = strumY + Note.swagWidth / 2;
 				
 				if (ClientPrefs.downScroll) {
 					if (daNote.isSustainNote) {
@@ -2257,7 +2285,7 @@ class PlayState extends MusicBeatState
 		}
 
 		if (!inCutscene) {
-			if(!cpuControlled) 
+			if(!cpuControlled && generatedMusic) 
 				keyShit();
 			else if(boyfriend.holdTimer > Conductor.stepCrochet * 0.001 * boyfriend.singDuration && boyfriend.animType == 1) 
 				boyfriend.dance();
@@ -2981,11 +3009,87 @@ class PlayState extends MusicBeatState
 
 		curSection += 1;
 	}
+	
+	public var possibleKeyIsPressed:Bool = false;
+	public function keyHit(e:KeyboardEvent){
+		// this doesn't resemble psych input
+		// but trust me this is the same.
+		// just heavily re-worked for speed.
+		var quickKey = e.keyCode;
+		
+		possibleKeyIsPressed = FlxG.keys.anyJustPressed(possibleBinds);
+		if (!possibleKeyIsPressed) return;
+		
+		if(!ClientPrefs.ghostTapping)
+			boyfriend.holdTimer = 0;
+
+		var canMiss:Bool = !ClientPrefs.ghostTapping;
+		var notesHitArray:Array<Note> = [];
+
+		// yes it means it is possible to have
+		// duplicate notes, and you will miss them.
+		// but just chart better cause you shouldn't have
+		// dupe notes!
+
+		notes.forEachAlive(function(daNote:Note){
+			if (!daNote.canBeHit) return;
+			
+			if (daNote.mustPress && !daNote.tooLate && !daNote.wasGoodHit) {
+				notesHitArray.push(daNote);
+				canMiss = true;
+			}
+		});
+
+		if (perfectMode)
+			goodNoteHit(notesHitArray[0]);
+		else if (notesHitArray.length > 0) 
+			for (i in 0...notesHitArray.length) {
+				var daNote = notesHitArray[i];
+				
+				if (quickKey == daNote.primaryBind || quickKey == daNote.secondrBind) {
+					goodNoteHit(daNote);
+					
+					if(ClientPrefs.ghostTapping)
+						boyfriend.holdTimer = 0;
+				}
+			}
+		//for (i in 0...keysPressed.length) 
+		//	if(!keysPressed[i] && controlArray[i]) keysPressed[i] = true;
+
+		// for loop because faster.
+		for(i in 0...4)
+		{
+			var spr = playerStrums.members[i];
+			if (spr.animation.curAnim.name == 'confirm') continue;
+			
+			if(quickKey == possibleBinds[i] || quickKey == possibleBinds[i+4]) {
+				spr.playAnim('pressed');
+				spr.resetAnim = 0;
+
+				if(!ClientPrefs.ghostTapping)
+					noteMiss(i);
+			}
+		}
+	}
+	
+	
+	public function keyRel(e:KeyboardEvent){
+		possibleKeyIsPressed = FlxG.keys.anyPressed(possibleBinds);
+		for (i in 0...4)
+			if (e.keyCode == possibleBinds[i] || e.keyCode == possibleBinds[i + 4]){
+				var qRef = playerStrums.members[i];
+				
+				qRef.playAnim('static');
+				qRef.resetAnim = 0;
+				
+				break;
+			}
+	}
 
 	private function keyShit():Void
 	{
 		// HOLDING
-		var up = controls.NOTE_UP;
+		/*var up = controls.NOTE_UP;
 		var right = controls.NOTE_RIGHT;
 		var down = controls.NOTE_DOWN;
 		var left = controls.NOTE_LEFT;
@@ -3002,14 +3106,18 @@ class PlayState extends MusicBeatState
 
 		var controlArray:Array<Bool> = [leftP, downP, upP, rightP];
 		var controlReleaseArray:Array<Bool> = [leftR, downR, upR, rightR];
-		var controlHoldArray:Array<Bool> = [left, down, up, right];
+		var controlHoldArray:Array<Bool> = [left, down, up, right];*/
+		
+		//var hit = FlxG.keys.anyJustPressed(keyGet);
 
 		// FlxG.watch.addQuick('asdfa', upP);
-		if (!boyfriend.stunned && generatedMusic)
+		if (!boyfriend.stunned)
 		{
-			if((left || down || up || right) && !endingSong) {
+			if(possibleKeyIsPressed && !endingSong) {
 				notes.forEachAlive(function(daNote:Note) {
-					if(daNote.isSustainNote && controlHoldArray[daNote.noteData] && daNote.canBeHit && daNote.mustPress) 
+					if (!daNote.canBeHit) return;
+					
+					if(daNote.isSustainNote && daNote.mustPress && FlxG.keys.anyPressed([daNote.primaryBind, daNote.secondrBind])) 
 						goodNoteHit(daNote);
 				});
 
@@ -3021,74 +3129,7 @@ class PlayState extends MusicBeatState
 				#end
 			} else if(boyfriend.holdTimer > Conductor.stepCrochet * 0.001 * boyfriend.singDuration && boyfriend.animType == 1)
 				boyfriend.dance();
-
-			if((leftP || downP || upP || rightP) && !endingSong) {
-				if(!ClientPrefs.ghostTapping)
-					boyfriend.holdTimer = 0;
-
-				var canMiss:Bool = !ClientPrefs.ghostTapping;
-
-				var notesHitArray:Array<Note> = [];
-				var notesDatas:Array<Int> = [];
-
-				// yes it means it is possible to have
-				// duplicate notes, and you will miss them.
-				// but chart better cause you shouldn't have
-				// dupe notes!
-
-				//var dupeNotes:Array<Note> = [];
-				notes.forEachAlive(function(daNote:Note) {
-					if (daNote.canBeHit && daNote.mustPress && !daNote.tooLate && !daNote.wasGoodHit) {
-						/*if (notesDatas.indexOf(daNote.noteData) != -1) {
-							for (i in 0...notesHitArray.length) {
-								var prevNote = notesHitArray[i];
-								if (prevNote.noteData == daNote.noteData && Math.abs(daNote.strumTime - prevNote.strumTime) < 10) {
-									dupeNotes.push(daNote);
-								} else if (prevNote.noteData == daNote.noteData && daNote.strumTime < prevNote.strumTime) {
-									notesHitArray.remove(prevNote);
-									notesHitArray.push(daNote);
-								}
-							}
-						} else {*/
-						notesHitArray.push(daNote);
-						notesDatas.push(daNote.noteData);
-						//}
-						canMiss = true;
-					}
-				});
-				//notesHitArray.sort(sortByShit);
-
-				if (perfectMode)
-					goodNoteHit(notesHitArray[0]);
-				else if (notesHitArray.length > 0) {
-					for (i in 0...notesHitArray.length) {
-						var daNote = notesHitArray[i];
-						if(controlArray[daNote.noteData]) {
-							goodNoteHit(daNote);
-							if(ClientPrefs.ghostTapping)
-								boyfriend.holdTimer = 0;
-						}
-					}
-				}
-				for (i in 0...keysPressed.length) 
-					if(!keysPressed[i] && controlArray[i]) keysPressed[i] = true;
-			}
 		}
-
-		playerStrums.forEach(function(spr:StrumNote)
-		{
-			if(controlArray[spr.ID] && spr.animation.curAnim.name != 'confirm') {
-				spr.playAnim('pressed');
-				spr.resetAnim = 0;
-
-				if(!ClientPrefs.ghostTapping)
-					noteMiss(spr.ID);
-			}
-			if(controlReleaseArray[spr.ID]) {
-				spr.playAnim('static');
-				spr.resetAnim = 0;
-			}
-		});
 	}
 
 	function badNoteHit():Void {
@@ -3205,15 +3246,21 @@ class PlayState extends MusicBeatState
 				if(note.isSustainNote && !note.animation.curAnim.name.endsWith('end')) {
 					time += 0.15;
 				}
-				StrumPlayAnim(false, Std.int(Math.abs(note.noteData)) % 4, time);
+				StrumPlayAnim(false, note.noteData, time);
 			} else {
-				playerStrums.forEach(function(spr:StrumNote)
-				{
-					if (Math.abs(note.noteData) == spr.ID)
-					{
-						spr.playAnim('confirm', true);
-					}
-				});
+				// this is the most hilarious crap I've ever seen.
+				// this is the WORST possible way you could have -
+				// - POSSIBLY DONE THIS!!!!
+				// WHAT THE SH*T IS THIS!!!
+				
+				//playerStrums.forEach(function(spr:StrumNote)
+				//{
+				//	if (Math.abs(note.noteData) == spr.ID)
+				//	{
+				//		spr.playAnim('confirm', true);
+				//	}
+				//});
+				playerStrums.members[note.noteData].playAnim('confirm', true);
 			}
 
 			note.wasGoodHit = true;
@@ -3413,6 +3460,9 @@ class PlayState extends MusicBeatState
 			luaArray[i].call('onDestroy', []);
 			luaArray[i].stop();
 		}
+		
+		FlxG.stage.removeEventListener(KeyboardEvent.KEY_DOWN, keyHit);
+		FlxG.stage.removeEventListener(KeyboardEvent.KEY_UP  , keyRel);
 		super.destroy();
 	}
 

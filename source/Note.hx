@@ -6,6 +6,7 @@ import flixel.graphics.frames.FlxAtlasFrames;
 import flixel.math.FlxMath;
 import flixel.util.FlxColor;
 import flash.display.BitmapData;
+import flixel.input.keyboard.FlxKey;
 
 using StringTools;
 
@@ -50,6 +51,10 @@ class Note extends FlxSprite
 		}
 		return value;
 	}
+	
+	//public static var possibleBinds
+	public var primaryBind:FlxKey;
+	public var secondrBind:FlxKey;
 
 	var isPixel:Bool = false;
 	public function new(strumTime:Float, fData:Int, ?prevNote:Note, ?sustainNote:Bool = false/*, ?inEditor:Bool = false*/)
@@ -63,6 +68,9 @@ class Note extends FlxSprite
 		this.noteData = fData % 4;
 		isSustainNote = sustainNote;
 		//this.inEditor = inEditor;
+		
+		primaryBind = PlayState.possibleBinds[noteData  ];
+		secondrBind = PlayState.possibleBinds[noteData+4];
 
 		x += (ClientPrefs.middleScroll ? PlayState.STRUM_X_MIDDLESCROLL : PlayState.STRUM_X) + 50;
 		// MAKE SURE ITS DEFINITELY OFF SCREEN?
