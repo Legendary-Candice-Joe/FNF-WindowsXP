@@ -744,7 +744,7 @@ class PlayState extends MusicBeatState
 			'songPercent', 0, 1);
 		timeBar.scrollFactor.set();
 		timeBar.createFilledBar(0xFF000000, 0xFFFFFFFF);
-		timeBar.numDivisions = 800; //How much lag this causes?? Should i tone it down to idk, 400 or 200?
+		timeBar.numDivisions = 400; //Set to 400 cause F**K YOUUUUUUU
 		timeBar.alpha = 0;
 		timeBar.visible = !ClientPrefs.hideTime;
 		add(timeBar);
@@ -963,6 +963,8 @@ class PlayState extends MusicBeatState
 		#end
 		
 		super.create();
+		
+		roundedSpeed = FlxMath.roundDecimal(SONG.speed, 2);
 		
 		// keyHit is not intentionally a reference to the keySh*t function.
 		// to be clear it is the same input just re-worked a little bit.
@@ -1439,6 +1441,26 @@ class PlayState extends MusicBeatState
 			return Std.int(a.strumTime - b.strumTime);
 		});
 		
+		// let's deal with dupe notes BEFORE the game starts.
+		// ya know...... NOT EVERY SINGLE FRAME!!!!
+		
+		var i:Int = 0;
+		while(i < unspawnNotes.length){
+			for (x in 0...unspawnNotes.length){
+				if(x != i && unspawnNotes[x].noteData == unspawnNotes[i].noteData &&
+					Math.abs(unspawnNotes[x].strumTime - unspawnNotes[i].strumTime) <= 9
+					    &&   unspawnNotes[x].mustPress== unspawnNotes[i].mustPress)
+				{
+					unspawnNotes.splice(x, 1);
+					i = -1;
+					trace('Found Dupe note!');
+					break;
+				}
+			}
+			/////////////
+			i++;
+		}
+		
 		if(eventNotes.length > 1) eventNotes.sort(sortByTime);
 
 		generatedMusic = true;
@@ -1776,7 +1798,8 @@ class PlayState extends MusicBeatState
 			//}
 		}
 	}
-
+	var roundedSpeed:Float;
+	
 	override public function update(Flapsed:Float)
 	{
 		// THATS RIGHT!
@@ -1988,50 +2011,38 @@ class PlayState extends MusicBeatState
 		Conductor.songPosition += elapsed * 1000;
 		if (startingSong && startedCountdown && Conductor.songPosition >= 0)
 			startSong();
-		else
+		//Conductor.songPosition += FlxG.elapsed * 1000;
+
+		// WTF IS THIS SH*t!?????
+		// THIS ISN'T EVEN BEING USED!!!!
+
+		/*songTime += FlxG.game.ticks - previousFrameTime;
+		previousFrameTime = FlxG.game.ticks;
+
+		// Interpolation type beat
+		if (Conductor.lastSongPos != Conductor.songPosition)
 		{
-			//Conductor.songPosition += FlxG.elapsed * 1000;
+			songTime = (songTime + Conductor.songPosition) / 2;
+			Conductor.lastSongPos = Conductor.songPosition;
+			// Conductor.songPosition += FlxG.elapsed * 1000;
+			// trace('MISSED FRAME');
+		}*/
 
-			if (!paused)
-			{
-				// WTF IS THIS SH*t!?????
-				// THIS ISN'T EVEN BEING USED!!!!
-
-				/*songTime += FlxG.game.ticks - previousFrameTime;
-				previousFrameTime = FlxG.game.ticks;
-
-				// Interpolation type beat
-				if (Conductor.lastSongPos != Conductor.songPosition)
-				{
-					songTime = (songTime + Conductor.songPosition) / 2;
-					Conductor.lastSongPos = Conductor.songPosition;
-					// Conductor.songPosition += FlxG.elapsed * 1000;
-					// trace('MISSED FRAME');
-				}*/
-
-				// goodness me.
-				if(updateTime) {
-					var curTime:Float = FlxG.sound.music.time - ClientPrefs.noteOffset;
-					if(curTime < 0) curTime = 0;
-					songPercent = (curTime / songLength);
-
-					var secondsTotal:Int = Math.floor((songLength - curTime) / 1000);
-					if(secondsTotal < 0) secondsTotal = 0;
-
-					var minutesRemaining:Int = Math.floor(secondsTotal / 60);
-					var secondsRemaining:String = '' + secondsTotal % 60;
-					if(secondsRemaining.length < 2) secondsRemaining = '0' + secondsRemaining; //Dunno how to make it display a zero first in Haxe lol
-					timeTxt.text = minutesRemaining + ':' + secondsRemaining;
-				}
-			}
-
-			// Conductor.lastSongPos = FlxG.sound.music.time;
+		// goodness me.
+		if (!paused && updateTime) {
+			songPercent = (Conductor.songPosition - ClientPrefs.noteOffset) / songLength;
+			var secondsTotal:Int = Math.floor((songLength - (songPercent * songLength)) / 1000);
+			var secondsRemaining:Int = secondsTotal % 60;
+			//if (secondsTotal < 0) secondsTotal = 0;
+			
+			timeTxt.text = Math.floor(secondsTotal / 60) +':'+ (secondsRemaining < 10 ? '0':'') + secondsRemaining;
+			//if(secondsRemaining < 10) secondsRemaining = '0' + secondsRemaining; //Dunno how to make it display a zero first in Haxe lol
 		}
 
-		if (generatedMusic && PlayState.SONG.notes[Std.int(curStep / 16)] != null && !endingSong && !isCameraOnForcedPos)
-		{
+		// Conductor.lastSongPos = FlxG.sound.music.time;
+
+		if (PlayState.SONG.notes[Std.int(curStep / 16)] != null && !endingSong && !isCameraOnForcedPos && generatedMusic)
 			moveCameraSection(Std.int(curStep / 16));
-		}
 
 		if (camZooming)
 		{
@@ -2042,7 +2053,7 @@ class PlayState extends MusicBeatState
 		//FlxG.watch.addQuick("beatShit", curBeat);
 		//FlxG.watch.addQuick("stepShit", curStep);
 
-		if (curSong == 'Bopeebo')
+		/*if (curSong == 'Bopeebo')
 		{
 			switch (curBeat)
 			{
@@ -2051,17 +2062,22 @@ class PlayState extends MusicBeatState
 					// FlxG.sound.music.stop();
 					// MusicBeatState.switchState(new PlayState());
 			}
-		}
+		}*/
 		// better streaming of shit
 
 		// RESET = Quick Game Over Screen
 		/*if (controls.RESET && !inCutscene && !endingSong)
 		{
 			health = 0;
-			trace("RESET = True");
+				trace("RESET = True");
 		}*/
+		
+		// so yes.
+		// technically this means if you put too many notes,
+		// the game will note spawn them in.
+		// but I do not care as this does not effect any charts
+		// that aren't ass.
 
-		var roundedSpeed:Float = FlxMath.roundDecimal(SONG.speed, 2);
 		if (unspawnNotes[0] != null)
 		{
 			var time:Float = 1200;
@@ -2079,25 +2095,9 @@ class PlayState extends MusicBeatState
 
 		if (generatedMusic)
 		{
-			var fakeCrochet:Float = (60 / SONG.bpm) * 1000;
+			//var fakeCrochet:Float = (60 / SONG.bpm) * 1000;
 			notes.forEachAlive(function(daNote:Note)
 			{
-				daNote.canBeHit = false;
-				if (daNote.mustPress)
-				{
-					// The * 0.5 is so that it's easier to hit them too late, instead of too early
-					if (daNote.strumTime > Conductor.songPosition - Conductor.safeZoneOffset
-						&& daNote.strumTime < Conductor.songPosition + (Conductor.safeZoneOffset * 0.5))
-						daNote.canBeHit = true;
-
-					if (daNote.strumTime < Conductor.songPosition - Conductor.safeZoneOffset){
-						daNote.tooLate = true;
-						daNote.alpha = 0.3;
-					}
-				}
-				else if (daNote.strumTime <= Conductor.songPosition)
-					daNote.wasGoodHit = true;
-
 				
 				/*if(!daNote.mustPress && ClientPrefs.middleScroll)
 				{
@@ -2121,18 +2121,36 @@ class PlayState extends MusicBeatState
 					strumY = playerStrums.members[daNote.noteData].y;
 	
 				daNote.y = (strumY + (ClientPrefs.downScroll ? 0.45 : -0.45) * (Conductor.songPosition - daNote.strumTime) * roundedSpeed);
+				daNote.y += daNote.holdY;
 				
 				daNote.active = (daNote.y > -daNote.height && ClientPrefs.downScroll) || (daNote.y < FlxG.height && !ClientPrefs.downScroll);
 				daNote.visible = daNote.active;
 				
 				if (!daNote.active) return;
 				
+				daNote.canBeHit = false;
+				if (daNote.mustPress)
+				{
+					// The * 0.5 is so that it's easier to hit them too late, instead of too early
+					if (daNote.strumTime > Conductor.songPosition - Conductor.safeZoneOffset
+						&& daNote.strumTime < Conductor.songPosition + (Conductor.safeZoneOffset * 0.5))
+						daNote.canBeHit = true;
+
+					if (daNote.strumTime < Conductor.songPosition - Conductor.safeZoneOffset){
+						daNote.tooLate = true;
+						daNote.alpha = 0.3;
+					}
+				}
+				else if (daNote.strumTime <= Conductor.songPosition)
+					daNote.wasGoodHit = true;
+				
 				var center:Float = strumY + Note.swagWidth / 2;
 				
 				if (ClientPrefs.downScroll) {
 					if (daNote.isSustainNote) {
 						//Jesus fuck this took me so much mother fucking time AAAAAAAAAA
-						if (daNote.isEnd) {
+						// And this code still doesn't even fix the problem anyway :)
+						/*if (daNote.isEnd) {
 							daNote.y += 10.5 * (fakeCrochet / 400) * 1.5 * roundedSpeed + (46 * (roundedSpeed - 1));
 							daNote.y -= 46 * (1 - (fakeCrochet / 600)) * roundedSpeed;
 							if(curStage == 'school' || curStage == 'schoolEvil') {
@@ -2140,7 +2158,7 @@ class PlayState extends MusicBeatState
 							}
 						} 
 						daNote.y += (Note.swagWidth / 2) - (60.5 * (roundedSpeed - 1));
-						daNote.y += 27.5 * ((SONG.bpm / 100) - 1) * (roundedSpeed - 1);
+						daNote.y += 27.5 * ((SONG.bpm / 100) - 1) * (roundedSpeed - 1);*/
 
 						if(daNote.y - daNote.offset.y * daNote.scale.y + daNote.height >= center
 							&& (!daNote.mustPress || (daNote.wasGoodHit || (daNote.prevNote.wasGoodHit && !daNote.canBeHit))))

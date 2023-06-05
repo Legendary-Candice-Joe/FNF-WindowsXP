@@ -32,13 +32,9 @@ class Note extends FlxSprite
 
 	//public var colorSwap:ColorSwap;
 	//public var inEditor:Bool = false;
-	public var isEnd:Bool = false;
+	public var holdY:Float = 0;
 
 	public static var swagWidth:Float = 160 * 0.7;
-	/*public static var PURP_NOTE:Int = 0;
-	public static var GREEN_NOTE:Int = 2;
-	public static var BLUE_NOTE:Int = 1;
-	public static var RED_NOTE:Int = 3;*/
 	public static var nCol:Array<String> = ['purple', 'blue', 'green', 'red'];
 
 	private function set_noteType(value:Int):Int {
@@ -68,6 +64,7 @@ class Note extends FlxSprite
 		this.noteData = fData % 4;
 		isSustainNote = sustainNote;
 		//this.inEditor = inEditor;
+		
 		
 		primaryBind = PlayState.possibleBinds[noteData  ];
 		secondrBind = PlayState.possibleBinds[noteData+4];
@@ -120,24 +117,35 @@ class Note extends FlxSprite
 		if (isSustainNote && prevNote != null)
 		{
 			alpha = 0.6;
-			if(ClientPrefs.downScroll) flipY = true;
+			flipY = ClientPrefs.downScroll;
 
 			x += width / 2;
 			animation.play(nCol[noteData] + 'holdend');
-			isEnd = true;
+			
+			// here is my very bad (good) hold note fix
+			// doesn't work well with pixel stages but it's
+			// faster so more performance is better.
+			
+			var calc:Float = Conductor.stepCrochet / 100 * (1.5 * (44 / 140)) * PlayState.SONG.speed;
+			scale.y *= calc;
+			if (ClientPrefs.downScroll) 
+				holdY += height * (calc * 0.5) * (PlayState.curStage.startsWith('school') ? PlayState.daPixelZoom * 0.5 : 1);
+				
+			/////////////////////////////////////
 
 			updateHitbox();
-
 			x -= width / 2;
 
 			if (PlayState.curStage.startsWith('school'))
 				x += 30;
 
 			if (prevNote.isSustainNote)
-			{
+			{	
 				prevNote.animation.play(nCol[noteData] + 'hold');
-				prevNote.isEnd = false;
-				prevNote.scale.y *= Conductor.stepCrochet / 100 * 1.5 * PlayState.SONG.speed;
+				
+				prevNote.holdY = 0;
+				prevNote.scale.y *= (140 / 44);
+				//prevNote.scale.y *= Conductor.stepCrochet / 100 * 1.5 * PlayState.SONG.speed;
 				prevNote.updateHitbox();
 				// prevNote.setGraphicSize();
 			}
@@ -148,14 +156,11 @@ class Note extends FlxSprite
 
 	function reloadNote(?prefix:String = '', ?suffix:String = '') {
 		var skin:String = PlayState.SONG.arrowSkin;
-		if(skin == null || skin.length < 1) {
+		if(skin == null || skin.length <= 0) 
 			skin = 'NOTE_assets';
-		}
-
-		var animName:String = null;
-		if(animation.curAnim != null) {
-			animName = animation.curAnim.name;
-		}
+		
+		var prevScaleY = scale.y;
+		var animName:String = animation.curAnim != null ? animation.curAnim.name : null;
 
 		var blahblah:String = prefix + skin + suffix;
 		if(isPixel) {
@@ -175,12 +180,14 @@ class Note extends FlxSprite
 			frames = Paths.getSparrowAtlas(blahblah);
 			loadNoteAnims();
 		}
+		
 		animation.play(animName, true);
-
-		if(ChartingState.noteEditor) {
+		scale.y = prevScaleY;
+		
+		if(ChartingState.noteEditor)
 			setGraphicSize(ChartingState.GRID_SIZE, ChartingState.GRID_SIZE);
-			updateHitbox();
-		}
+		///////
+		updateHitbox();
 	}
 
 	function loadNoteAnims() {
