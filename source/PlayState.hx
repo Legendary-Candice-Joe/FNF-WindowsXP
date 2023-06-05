@@ -2074,7 +2074,7 @@ class PlayState extends MusicBeatState
 		
 		// so yes.
 		// technically this means if you put too many notes,
-		// the game will note spawn them in.
+		// the game will not spawn them in.
 		// but I do not care as this does not effect any charts
 		// that aren't ass.
 
