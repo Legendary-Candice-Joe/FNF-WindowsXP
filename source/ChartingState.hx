@@ -1261,7 +1261,8 @@ class ChartingState extends MusicBeatState
 		}
 
 		curStep = lastChange.stepTime + Math.floor((FlxG.sound.music.time - lastChange.songTime + add) / Conductor.stepCrochet);
-		updateBeat();
+		curBeat = Math.floor(curStep / 4);
+		//updateBeat();
 
 		return curStep;
 	}

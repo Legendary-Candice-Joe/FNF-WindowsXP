@@ -25,16 +25,14 @@ class StrumNote extends FlxSprite
 	override function update(elapsed:Float) {
 		if(resetAnim > 0) {
 			resetAnim -= elapsed;
-			if(resetAnim <= 0) {
+			if(resetAnim <= 0) 
 				playAnim('static');
-				resetAnim = 0;
-			}
 		}
 
 		super.update(elapsed);
 	}
 
-	public function playAnim(anim:String, ?force:Bool = false) {
+	public inline function playAnim(anim:String, ?force:Bool = false) {
 		animation.play(anim, force);
 		centerOffsets();
 		centerOrigin ();

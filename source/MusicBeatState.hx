@@ -46,7 +46,7 @@ class MusicBeatState extends FlxUIState
 		var oldStep:Int = curStep;
 
 		updateCurStep();
-		updateBeat();
+		//updateBeat();
 
 		if (oldStep != curStep && curStep > 0)
 			stepHit();
@@ -54,10 +54,10 @@ class MusicBeatState extends FlxUIState
 		super.update(elapsed);
 	}
 
-	private function updateBeat():Void
+	/*private function updateBeat():Void
 	{
 		curBeat = Math.floor(curStep / 4);
-	}
+	}*/
 
 	var lastChange:BPMChangeEvent = {
 		stepTime: 0,
@@ -104,8 +104,10 @@ class MusicBeatState extends FlxUIState
 
 	public function stepHit():Void
 	{
-		if (curStep % 4 == 0)
+		if (curStep % 4 == 0){
+			curBeat = Math.floor(curStep / 4);
 			beatHit();
+		}
 	}
 
 	public function beatHit():Void
