@@ -1247,22 +1247,26 @@ class ChartingState extends MusicBeatState
 		updateGrid();
 	}
 
+	var lastTime:Float = 0;
+	
 	function recalculateSteps(add:Float = 0):Int
 	{
-		var lastChange:BPMChangeEvent = {
-			stepTime: 0,
-			songTime: 0,
-			bpm: 0
-		}
-		for (i in 0...Conductor.bpmChangeMap.length)
-		{
-			if (FlxG.sound.music.time > Conductor.bpmChangeMap[i].songTime)
-				lastChange = Conductor.bpmChangeMap[i];
-		}
-
 		curStep = lastChange.stepTime + Math.floor((FlxG.sound.music.time - lastChange.songTime + add) / Conductor.stepCrochet);
-		curBeat = Math.floor(curStep / 4);
+		if (curStep % 4 == 0) {
+			var oldBeat:Float = curBeat;
+			curBeat = Math.floor(curStep / 4);
+			if (oldBeat != curBeat)
+				for (i in 0...Conductor.bpmChangeMap.length)
+				{
+					if (FlxG.sound.music.time > Conductor.bpmChangeMap[i].songTime)
+						lastChange = Conductor.bpmChangeMap[i];
+				}
+		}
 		//updateBeat();
+		if (FlxG.sound.music.time != lastTime){
+			trace(FlxG.sound.music.time);
+			lastTime = FlxG.sound.music.time;
+		}
 
 		return curStep;
 	}
