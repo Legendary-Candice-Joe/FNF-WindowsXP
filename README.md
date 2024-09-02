@@ -1,3 +1,8 @@
+# ARCHIVED
+
+I have not maintained this version of FNF in a long time. There are still a ton of bugs, and I have put more work in to my own engine.
+The information in the README is still valid though, in case you want to make your own XP fork.
+
 # FINALY!!!!
 
 A port of the very well-known game: Friday Night Funkin'
